@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --c-primary: #3b82f6;
+  --c-bg-app: #ffffff;
+  --c-bg-secondary: #f8fafc;
+  --c-text-primary: #1e293b;
+  --c-text-secondary: #64748b;
+  --c-border: #e2e8f0;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--c-bg-app);
+  color: var(--c-text-primary);
+}
+
+.calendar-cell {
+  background-color: var(--c-bg-app);
+  border: 1px solid var(--c-border);
+}
+
+.calendar-cell:hover {
+  background-color: color-mix(in srgb, var(--c-primary) 5%, var(--c-bg-app));
+  border-color: var(--c-primary);
+}
+
+/* Improve text visibility */
+.text-slate-500 {
+  color: var(--c-text-secondary) !important;
+}
+
+.text-slate-600 {
+  color: var(--c-text-secondary) !important;
+}
+
+/* Improve button visibility */
+.border-slate-300 {
+  border-color: var(--c-border) !important;
+}
+
+/* Improve modal visibility */
+.bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+} 
