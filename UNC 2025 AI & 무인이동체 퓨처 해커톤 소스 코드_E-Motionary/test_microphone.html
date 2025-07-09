@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microphone Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .info-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .troubleshooting {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .troubleshooting h3 {
+            margin-top: 0;
+        }
+        .troubleshooting ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Microphone Access Test</h1>
+        <p>This tool helps diagnose microphone access issues in your browser.</p>
+        
+        <div id="status" class="status info">
+            Click "Test Microphone" to check access
+        </div>
+        
+        <button id="testBtn" onclick="testMicrophone()">Test Microphone</button>
+        
+        <div id="info" class="info-grid" style="display: none;">
+            <div class="info-item">
+                <strong>Protocol:</strong> <span id="protocol"></span>
+            </div>
+            <div class="info-item">
+                <strong>Hostname:</strong> <span id="hostname"></span>
+            </div>
+            <div class="info-item">
+                <strong>getUserMedia Supported:</strong> <span id="getUserMediaSupported"></span>
+            </div>
+            <div class="info-item">
+                <strong>mediaDevices Supported:</strong> <span id="mediaDevicesSupported"></span>
+            </div>
+            <div class="info-item">
+                <strong>Browser:</strong> <span id="browser"></span>
+            </div>
+            <div class="info-item">
+                <strong>Platform:</strong> <span id="platform"></span>
+            </div>
+        </div>
+        
+        <div id="troubleshooting" class="troubleshooting" style="display: none;">
+            <h3>🔧 Troubleshooting Tips</h3>
+            <ul>
+                <li><strong>Browser Permissions:</strong> Check if microphone access is allowed in your browser settings</li>
+                <li><strong>HTTPS Required:</strong> Microphone access requires HTTPS or localhost</li>
+                <li><strong>Browser Compatibility:</strong> Use Chrome, Firefox, or Safari (avoid Internet Explorer)</li>
+                <li><strong>System Settings:</strong> Check your system's microphone permissions</li>
+                <li><strong>Hardware:</strong> Ensure microphone is connected and not being used by other apps</li>
+                <li><strong>Try Different Browser:</strong> If one browser doesn't work, try another</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function showInfo() {
+            document.getElementById('info').style.display = 'grid';
+            document.getElementById('protocol').textContent = window.location.protocol;
+            document.getElementById('hostname').textContent = window.location.hostname;
+            document.getElementById('getUserMediaSupported').textContent = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) ? 'Yes' : 'No';
+            document.getElementById('mediaDevicesSupported').textContent = !!navigator.mediaDevices ? 'Yes' : 'No';
+            document.getElementById('browser').textContent = navigator.userAgent.split(' ').pop().split('/')[0];
+            document.getElementById('platform').textContent = navigator.platform;
+        }
+
+        function showTroubleshooting() {
+            document.getElementById('troubleshooting').style.display = 'block';
+        }
+
+        async function testMicrophone() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+            
+            updateStatus('Testing microphone access...', 'info');
+            
+            try {
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('getUserMedia is not supported in this browser');
+                }
+
+                // Try different audio configurations with fallbacks
+                let stream;
+                const audioConfigs = [
+                    // Most compatible configuration (like audd.py)
+                    { audio: true },
+                    // Even more basic - just audio without any constraints
+                    { audio: {} },
+                    // Basic audio with minimal constraints
+                    { 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    },
+                    // Standard configuration
+                    { 
+                        audio: {
+                            sampleRate: 44100,
+                            channelCount: 2,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    }
+                ];
+
+                // Try each configuration until one works
+                for (let i = 0; i < audioConfigs.length; i++) {
+                    try {
+                        console.log(`Trying audio configuration ${i + 1}:`, audioConfigs[i]);
+                        stream = await navigator.mediaDevices.getUserMedia(audioConfigs[i]);
+                        console.log(`Audio configuration ${i + 1} successful`);
+                        break;
+                    } catch (configError) {
+                        console.log(`Audio configuration ${i + 1} failed:`, configError.name);
+                        if (i === audioConfigs.length - 1) {
+                            // If all configurations fail, throw the last error
+                            throw configError;
+                        }
+                    }
+                }
+
+                // Check if we got audio tracks
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length === 0) {
+                    throw new Error('No audio tracks found');
+                }
+
+                // Stop the stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                updateStatus('✅ Microphone access successful!', 'success');
+                showInfo();
+                
+            } catch (error) {
+                console.error('Microphone test error:', error);
+                
+                let errorMessage = '❌ Microphone access failed';
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage = '❌ Microphone access denied. Please allow microphone access in your browser settings.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMessage = '❌ No microphone found. Please connect a microphone and try again.';
+                } else if (error.name === 'NotSupportedError' || error.name === 'ConstraintNotSatisfiedError') {
+                    errorMessage = '❌ Microphone does not support required settings. Try a different microphone.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMessage = '❌ Microphone is already in use by another application.';
+                } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintError') {
+                    errorMessage = '❌ Microphone settings are not supported.';
+                } else if (error.name === 'SecurityError') {
+                    errorMessage = '❌ Microphone access blocked due to security settings.';
+                } else {
+                    errorMessage = `❌ Microphone access failed: ${error.message}`;
+                }
+                
+                updateStatus(errorMessage, 'error');
+                showInfo();
+                showTroubleshooting();
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'Test Microphone';
+            }
+        }
+
+        // Show initial info
+        showInfo();
+    </script>
+</body>
+</html> 

@@ -85,7 +85,7 @@ export default function GalleryView() {
     } catch (error) {
       console.error('Error adding photo:', error);
       if (error.message.includes('Load failed')) {
-        alert('Network error: Unable to connect to the server. Please check if the backend is running on http://localhost:5000');
+        alert('Network error: Unable to connect to the server. Please check if the backend is running on http://localhost:5001');
       } else {
         alert(`Error adding photo: ${error.message}`);
       }

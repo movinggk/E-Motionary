@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Audio Test (like audd.py)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .recording { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Simple Audio Test (like audd.py)</h1>
+        <p>This test uses the exact same audio configuration as your working audd.py file.</p>
+        
+        <div id="status" class="status info">
+            Click "Start Recording" to test audio access
+        </div>
+        
+        <button id="recordBtn" onclick="startRecording()">Start Recording</button>
+        <button id="stopBtn" onclick="stopRecording()" disabled>Stop Recording</button>
+        
+        <div id="info" style="margin-top: 20px; font-size: 14px; color: #666;">
+            <strong>Configuration used:</strong><br>
+            • getUserMedia: { audio: true }<br>
+            • MediaRecorder: { type: 'audio/webm' }<br>
+            • Same as your working audd.py file
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let stream;
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        async function startRecording() {
+            try {
+                updateStatus('Requesting microphone access...', 'info');
+                
+                // Use EXACTLY the same configuration as audd.py
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                updateStatus('Microphone access granted! Starting recording...', 'success');
+                
+                // Use simple MediaRecorder like audd.py
+                mediaRecorder = new MediaRecorder(stream, { type: 'audio/webm' });
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    updateStatus(`✅ Recording completed! Size: ${blob.size} bytes`, 'success');
+                    console.log('Recording blob:', blob);
+                    
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                updateStatus('🔴 Recording... Click "Stop Recording" when done', 'recording');
+                
+                document.getElementById('recordBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Audio recording error:', error);
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                document.getElementById('recordBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+    </script>
+</body>
+</html> 

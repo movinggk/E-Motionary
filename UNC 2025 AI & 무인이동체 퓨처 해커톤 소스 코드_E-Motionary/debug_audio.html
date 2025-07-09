@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Debug Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .recording { background-color: #fff3cd; color: #856404; }
+        .debug-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Audio Debug Tool</h1>
+        <p>This tool will record audio and send it to our debug endpoint to analyze what's happening with the audio files.</p>
+        
+        <div id="status" class="status info">
+            Click "Start Recording" to begin debugging
+        </div>
+        
+        <button id="recordBtn" onclick="startRecording()">Start Recording</button>
+        <button id="stopBtn" onclick="stopRecording()" disabled>Stop Recording</button>
+        <button id="debugBtn" onclick="sendToDebug()" disabled>Send to Debug Endpoint</button>
+        
+        <div id="debugInfo" class="debug-info" style="display: none;">
+            <strong>Debug Information:</strong>
+            <div id="debugContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let stream;
+        let audioBlob;
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        async function startRecording() {
+            try {
+                updateStatus('Requesting microphone access...', 'info');
+                
+                // Use the same configuration as the main app
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 44100,
+                        channelCount: 2,
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    } 
+                });
+                
+                updateStatus('Microphone access granted! Starting recording...', 'success');
+                
+                mediaRecorder = new MediaRecorder(stream, { 
+                    type: 'audio/webm;codecs=opus',
+                    audioBitsPerSecond: 128000
+                });
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    updateStatus(`✅ Recording completed! Size: ${audioBlob.size} bytes`, 'success');
+                    document.getElementById('debugBtn').disabled = false;
+                    
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                updateStatus('🔴 Recording... Click "Stop Recording" when done', 'recording');
+                
+                document.getElementById('recordBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Audio recording error:', error);
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                document.getElementById('recordBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        async function sendToDebug() {
+            if (!audioBlob) {
+                updateStatus('No audio recorded yet', 'error');
+                return;
+            }
+
+            try {
+                updateStatus('Sending to debug endpoint...', 'info');
+                
+                const formData = new FormData();
+                formData.append('audio_data', audioBlob, 'debug_recording.webm');
+                
+                const response = await fetch('http://localhost:5001/api/debug-audio', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateStatus('✅ Debug analysis completed!', 'success');
+                    
+                    // Display debug information
+                    const debugInfo = document.getElementById('debugInfo');
+                    const debugContent = document.getElementById('debugContent');
+                    
+                    debugContent.innerHTML = JSON.stringify(result, null, 2);
+                    debugInfo.style.display = 'block';
+                    
+                } else {
+                    updateStatus(`❌ Debug failed: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Debug error:', error);
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 

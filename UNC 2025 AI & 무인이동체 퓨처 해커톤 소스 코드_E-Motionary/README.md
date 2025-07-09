@@ -222,6 +222,61 @@ CREATE TABLE photos (
 - The database file is created automatically
 - Delete `integrated_diary.db` to reset data
 
+### Microphone Access Troubleshooting
+
+If you're experiencing "Could not access microphone" errors, try these solutions:
+
+#### 1. Browser Permissions
+- **Chrome/Edge**: Click the lock icon in the address bar → Site Settings → Microphone → Allow
+- **Firefox**: Click the shield icon → Permissions → Microphone → Allow
+- **Safari**: Safari → Preferences → Websites → Microphone → Allow for localhost
+
+#### 2. HTTPS Requirement
+- Microphone access requires HTTPS or localhost
+- Make sure you're accessing the app via:
+  - `http://localhost:3000` (development)
+  - `https://yourdomain.com` (production)
+
+#### 3. Browser Compatibility
+- Use modern browsers: Chrome 60+, Firefox 55+, Safari 11+
+- Avoid Internet Explorer (not supported)
+
+#### 4. System Microphone Settings
+- **macOS**: System Preferences → Security & Privacy → Microphone → Enable for your browser
+- **Windows**: Settings → Privacy → Microphone → Allow apps to access microphone
+- **Linux**: Check your audio settings and ensure microphone is not muted
+
+#### 5. Hardware Issues
+- Ensure microphone is connected and working
+- Test microphone in other applications
+- Check if microphone is being used by another application
+
+#### 6. Development Environment
+- If using localhost, make sure both servers are running:
+  ```bash
+  # Backend should be on port 5001
+  curl http://localhost:5001/api/songs
+  
+  # Frontend should be on port 3000
+  curl http://localhost:3000
+  ```
+
+#### 7. Advanced Debugging
+- Open browser developer tools (F12)
+- Check Console tab for error messages
+- Look for specific error names like:
+  - `NotAllowedError`: Permission denied
+  - `NotFoundError`: No microphone found
+  - `NotSupportedError`: Browser doesn't support getUserMedia
+  - `SecurityError`: HTTPS requirement not met
+
+#### 8. Alternative Solutions
+- Try a different browser
+- Restart your browser
+- Clear browser cache and cookies
+- Disable browser extensions that might interfere
+- Try incognito/private browsing mode
+
 ## Development
 
 ### Adding New Features

@@ -205,9 +205,9 @@ def recognize_song():
         response_json = resp.json()
         print(f"Audd.io response: {response_json}")
         
-        result = response_json.get('result')
-        
-        if result:
+        # Check if the response is successful
+        if response_json.get('status') == 'success' and response_json.get('result'):
+            result = response_json.get('result')
             title = result.get('title')
             artist = result.get('artist')
             print(f"Recognized song: {title} by {artist}")
@@ -231,7 +231,14 @@ def recognize_song():
         else:
             error_msg = response_json.get('error', {}).get('error_message', 'Unknown error')
             print(f"Recognition failed: {error_msg}")
-            return jsonify({'success': False, 'message': f'Could not recognize song: {error_msg}'}), 400
+            
+            # Provide more helpful error messages
+            if 'audio fingerprint' in error_msg.lower():
+                return jsonify({'success': False, 'message': 'Audio quality too low for recognition. Please record clearer audio (5-10 seconds, close to music source, reduce background noise).'}), 400
+            elif 'could not recognize' in error_msg.lower():
+                return jsonify({'success': False, 'message': 'Song not found in database. Please try recording a more popular song or recording clearer audio.'}), 400
+            else:
+                return jsonify({'success': False, 'message': f'Could not recognize song: {error_msg}'}), 400
             
     except Exception as e:
         print(f"Exception during song recognition: {str(e)}")
@@ -330,6 +337,59 @@ def test_photo():
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'Test failed: {str(e)}'}), 500
+
+@app.route('/api/debug-audio', methods=['POST'])
+def debug_audio():
+    """Debug endpoint to analyze audio files before sending to Audd.io"""
+    if 'audio_data' not in request.files:
+        return jsonify({'success': False, 'message': 'No audio data provided'}), 400
+    
+    audio_file = request.files['audio_data']
+    
+    # Get file information
+    file_info = {
+        'filename': audio_file.filename,
+        'content_type': audio_file.content_type,
+        'content_length': audio_file.content_length,
+        'mimetype': audio_file.mimetype
+    }
+    
+    # Read the file content to analyze it
+    audio_content = audio_file.read()
+    file_info['actual_size'] = len(audio_content)
+    file_info['first_100_bytes'] = audio_content[:100].hex()
+    
+    # Check if it's a valid audio file
+    if audio_content.startswith(b'RIFF') or audio_content.startswith(b'\x1f\x8b'):
+        file_info['file_type'] = 'Valid audio file'
+    else:
+        file_info['file_type'] = 'Unknown or invalid file'
+    
+    # Test Audd.io API with detailed logging
+    try:
+        files = {'file': (audio_file.filename, audio_content, audio_file.mimetype)}
+        data = {'api_token': AUDD_API_TOKEN}
+        
+        print(f"Debug: Sending file to Audd.io - {file_info}")
+        resp = requests.post('https://api.audd.io/', data=data, files=files)
+        
+        response_json = resp.json()
+        file_info['audd_response'] = response_json
+        file_info['audd_status_code'] = resp.status_code
+        
+        return jsonify({
+            'success': True, 
+            'file_info': file_info,
+            'audd_response': response_json
+        })
+        
+    except Exception as e:
+        file_info['error'] = str(e)
+        return jsonify({
+            'success': False, 
+            'file_info': file_info,
+            'error': str(e)
+        }), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001) 
