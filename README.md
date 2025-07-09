@@ -57,7 +57,11 @@ integrated-app/
 
 2. ```./start.sh```
 
-### Backend Setup
+The backend will run on `http://localhost:5001` and the frontend will run on `http://localhost:3000`.
+
+### Manual Setup
+
+#### Backend Setup
 
 1. Navigate to the backend directory:
 ```bash
@@ -88,7 +92,7 @@ python app.py
 
 The backend will run on `http://localhost:5001`
 
-### Frontend Setup
+#### Frontend Setup
 
 1. Navigate to the frontend directory:
 ```bash
