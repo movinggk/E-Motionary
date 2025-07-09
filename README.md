@@ -240,4 +240,4 @@ CREATE TABLE photos (
 
 ## License
 
-This project is for educational purposes. Please respect the terms of service for the APIs used (Audd.io, OpenAI).
+Please respect the terms of service for the APIs used (Audd.io, OpenAI).
