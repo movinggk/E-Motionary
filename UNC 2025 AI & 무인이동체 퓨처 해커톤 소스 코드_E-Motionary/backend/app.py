@@ -10,7 +10,7 @@ import base64
 
 # === Configuration: Insert your keys here ===
 FLASK_SECRET = "your_flask_secret_here"
-AUDD_API_TOKEN = "8c71a605acd79e8771c612a1e412db5f"
+AUDD_API_TOKEN = "743e00d420dcbb966e64cdd026c34d63"
 OPENAI_API_KEY = "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"
 # ============================================
 
@@ -192,16 +192,25 @@ def recognize_song():
         return jsonify({'success': False, 'message': 'No audio data provided'}), 400
     
     audio_file = request.files['audio_data']
+    print(f"Received audio file: {audio_file.filename}, size: {audio_file.content_length}, type: {audio_file.mimetype}")
+    
     files = {'file': (audio_file.filename, audio_file.stream, audio_file.mimetype)}
     data = {'api_token': AUDD_API_TOKEN}
     
     try:
+        print("Sending request to Audd.io API...")
         resp = requests.post('https://api.audd.io/', data=data, files=files)
-        result = resp.json().get('result')
+        print(f"Audd.io response status: {resp.status_code}")
+        
+        response_json = resp.json()
+        print(f"Audd.io response: {response_json}")
+        
+        result = response_json.get('result')
         
         if result:
             title = result.get('title')
             artist = result.get('artist')
+            print(f"Recognized song: {title} by {artist}")
             
             # Save to database
             conn = sqlite3.connect(DB_PATH)
@@ -220,9 +229,12 @@ def recognize_song():
                 'message': 'Song recognized and saved'
             })
         else:
-            return jsonify({'success': False, 'message': 'Could not recognize song'}), 400
+            error_msg = response_json.get('error', {}).get('error_message', 'Unknown error')
+            print(f"Recognition failed: {error_msg}")
+            return jsonify({'success': False, 'message': f'Could not recognize song: {error_msg}'}), 400
             
     except Exception as e:
+        print(f"Exception during song recognition: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 @app.route('/api/ask', methods=['POST'])

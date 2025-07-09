@@ -22,11 +22,26 @@ export default function MusicView() {
   const [audioChunks, setAudioChunks] = useState([]);
   const [manualTitle, setManualTitle] = useState('');
   const [manualArtist, setManualArtist] = useState('');
+  const [recordingStartTime, setRecordingStartTime] = useState(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
   // Fetch songs on mount
   useEffect(() => {
     fetchSongs();
   }, []);
+
+  // Timer for recording duration
+  useEffect(() => {
+    let interval;
+    if (recording && recordingStartTime) {
+      interval = setInterval(() => {
+        setRecordingDuration(Math.floor((Date.now() - recordingStartTime) / 1000));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [recording, recordingStartTime]);
 
   const fetchSongs = async () => {
     try {
@@ -42,15 +57,29 @@ export default function MusicView() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 44100,
+          channelCount: 2,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      });
+      
+      // Try to use MP3 format if supported, otherwise fall back to WebM
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp3') 
+        ? 'audio/mp3' 
+        : 'audio/webm';
+      
+      const recorder = new MediaRecorder(stream, { mimeType });
       
       recorder.ondataavailable = (e) => {
         setAudioChunks(prev => [...prev, e.data]);
       };
       
       recorder.onstop = async () => {
-        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const blob = new Blob(audioChunks, { type: mimeType });
+        console.log(`Recording completed. Size: ${blob.size} bytes, Type: ${mimeType}`);
         await recognizeSong(blob);
         setAudioChunks([]);
       };
@@ -58,6 +87,8 @@ export default function MusicView() {
       setMediaRecorder(recorder);
       recorder.start();
       setRecording(true);
+      setRecordingStartTime(Date.now());
+      setRecordingDuration(0);
     } catch (error) {
       console.error('Error starting recording:', error);
       alert('Could not access microphone');
@@ -66,15 +97,29 @@ export default function MusicView() {
 
   const stopRecording = () => {
     if (mediaRecorder && recording) {
+      const recordingDuration = Date.now() - recordingStartTime;
+      
+      if (recordingDuration < 3000) { // Less than 3 seconds
+        alert('Please record at least 3 seconds of audio for better recognition');
+        setRecording(false);
+        setRecordingStartTime(null);
+        setAudioChunks([]);
+        return;
+      }
+      
       mediaRecorder.stop();
       setRecording(false);
+      setRecordingStartTime(null);
     }
   };
 
   const recognizeSong = async (audioBlob) => {
     try {
       const formData = new FormData();
-      formData.append('audio_data', audioBlob, 'recording.webm');
+      const fileName = audioBlob.type === 'audio/mp3' ? 'recording.mp3' : 'recording.webm';
+      formData.append('audio_data', audioBlob, fileName);
+      
+      console.log(`Sending audio file: ${fileName}, size: ${audioBlob.size} bytes`);
       
       const response = await fetch(`${API_BASE}/recognize-song`, {
         method: 'POST',
@@ -87,11 +132,12 @@ export default function MusicView() {
         alert(`Recognized: ${result.song.title} by ${result.song.artist}`);
         fetchSongs(); // Refresh the list
       } else {
-        alert('Could not recognize song. Please try again.');
+        console.error('Recognition failed:', result.message);
+        alert(`Could not recognize song: ${result.message}`);
       }
     } catch (error) {
       console.error('Error recognizing song:', error);
-      alert('Error recognizing song');
+      alert('Error recognizing song. Please check your internet connection and try again.');
     }
   };
 
@@ -180,7 +226,7 @@ export default function MusicView() {
         
         {recording && (
           <div className="mt-2 text-sm text-gray-600">
-            Recording... Click stop when the song ends
+            Recording... {recordingDuration}s - Hold your device near the music source and record 5-10 seconds of the song
           </div>
         )}
       </div>
