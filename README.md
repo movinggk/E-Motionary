@@ -51,6 +51,12 @@ integrated-app/
 - Node.js 16+
 - npm or yarn
 
+### Quickstart
+
+1. ```./setup.sh```
+
+2. ```./start.sh```
+
 ### Backend Setup
 
 1. Navigate to the backend directory:
@@ -230,5 +236,4 @@ CREATE TABLE photos (
 
 ## License
 
-This project is for educational purposes. Please respect the terms of service for the APIs used (Audd.io, OpenAI). # E-Motionary
-# E-Motionary
+This project is for educational purposes. Please respect the terms of service for the APIs used (Audd.io, OpenAI).
