@@ -60,6 +60,25 @@ integrated-app/
 - Node.js 16+
 - npm or yarn
 
+### Required API Keys
+
+The app requires the following API keys for full functionality:
+
+1. **Free LLM API** (for AI assistant feature):
+   - ✅ **No API key required** - uses Hugging Face's free inference API
+   - Optional: Get a free Hugging Face token for better rate limits
+   - See `API_KEYS_SETUP.md` for details
+
+2. **Audd.io API Token** (for music recognition):
+   - The app includes a test token, but for production use:
+   - Go to [Audd.io](https://audd.io/) and get your own token
+   - Replace the token in `backend/app.py`
+
+3. **Google Calendar** (optional, for calendar integration):
+   - Follow the setup guide in `GOOGLE_CALENDAR_SETUP.md`
+
+For detailed setup instructions, see `API_KEYS_SETUP.md`.
+
 ### Quickstart
 
 1. ```./setup.sh```
@@ -88,10 +107,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Update API keys in `app.py`:
+4. Update API keys in `app.py` (optional):
 ```python
-AUDD_API_TOKEN = "your_audd_token_here"
-OPENAI_API_KEY = "your_openai_key_here"
+AUDD_API_TOKEN = "your_audd_token_here"  # Optional: get your own from audd.io
+HUGGINGFACE_API_TOKEN = "your_hf_token_here"  # Optional: for better rate limits
 ```
 
 5. Start the Flask server:
@@ -216,7 +235,7 @@ CREATE TABLE photos (
 - Flask (Python web framework)
 - SQLite (Database)
 - Audd.io API (Music recognition)
-- OpenAI API (AI assistant)
+- Hugging Face Inference API (Free AI assistant)
 - Google Calendar API (Calendar integration)
 
 ### Frontend

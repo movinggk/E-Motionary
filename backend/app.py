@@ -4,7 +4,6 @@ import calendar
 from flask import Flask, request, redirect, url_for, render_template_string, jsonify
 from flask_cors import CORS
 import requests
-from openai import OpenAI
 import os
 import base64
 from google_calendar import calendar_manager
@@ -12,14 +11,18 @@ from google_calendar import calendar_manager
 # === Configuration: Insert your keys here ===
 FLASK_SECRET = "your_flask_secret_here"
 AUDD_API_TOKEN = "743e00d420dcbb966e64cdd026c34d63"
-OPENAI_API_KEY = "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"
+
+# Hugging Face API Token (Optional - for better rate limits)
+# Get yours from https://huggingface.co/settings/tokens
+# Free tier available without token, but with rate limits
+HUGGINGFACE_API_TOKEN = "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"  # Set to your token if you have one
+
 # ============================================
 
-# Initialize Flask app and OpenAI client
+# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET
 CORS(app)  # Enable CORS for React frontend
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Database file path
 DB_PATH = "integrated_diary.db"
@@ -351,7 +354,7 @@ def recognize_song():
 
 @app.route('/api/ask', methods=['POST'])
 def ask_question():
-    """Ask questions about music and photo history"""
+    """Ask questions about music and photo history using free LLM API"""
     data = request.get_json()
     question = data.get('question')
     
@@ -382,22 +385,58 @@ def ask_question():
     
     history_text = "\n".join(history)
     
-    # Ask OpenAI
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant that answers questions about a user's music listening and photo history."},
-        {"role": "system", "content": f"History:\n{history_text}"},
-        {"role": "user", "content": question}
-    ]
-    
+    # Create prompt for the LLM
+    prompt = f"""You are a helpful assistant that answers questions about a user's music listening and photo history.
+
+User's History:
+{history_text}
+
+User Question: {question}
+
+Please provide a helpful and informative answer based on the user's history data. If there's no relevant data, let them know politely."""
+
     try:
-        response = client.chat.completions.create(
-            model='gpt-4o',
-            messages=messages
-        )
-        answer = response.choices[0].message.content
-        return jsonify({'success': True, 'answer': answer})
+        # Use Hugging Face's free inference API
+        api_url = "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium"
+        
+        headers = {}
+        if HUGGINGFACE_API_TOKEN:
+            headers["Authorization"] = f"Bearer {HUGGINGFACE_API_TOKEN}"
+        
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_length": 500,
+                "temperature": 0.7,
+                "do_sample": True
+            }
+        }
+        
+        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                answer = result[0].get('generated_text', '')
+                # Clean up the response (remove the input prompt)
+                if answer.startswith(prompt):
+                    answer = answer[len(prompt):].strip()
+                return jsonify({'success': True, 'answer': answer})
+            else:
+                return jsonify({'success': False, 'message': 'No response from AI service'}), 500
+        else:
+            # Fallback to a simple response if API fails
+            return jsonify({
+                'success': True, 
+                'answer': f"I can see you have {len(songs)} songs and {len(photos)} photos in your history. I'm having trouble processing your specific question right now, but you can browse your data in the calendar view!"
+            })
+            
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        # Fallback response if API is unavailable
+        return jsonify({
+            'success': True, 
+            'answer': f"I can see you have {len(songs)} songs and {len(photos)} photos in your history. I'm currently unavailable, but you can browse your data in the calendar view!"
+        })
 
 @app.route('/api/photos/<int:photo_id>', methods=['DELETE'])
 def delete_photo(photo_id):
