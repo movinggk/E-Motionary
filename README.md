@@ -337,4 +337,4 @@ If you're experiencing "Could not access microphone" errors, try these solutions
 
 ## License
 
-Please respect the terms of service for the APIs used (Audd.io, OpenAI).
+Please respect the terms of service for the APIs used (Audd.io, Huggingface).
