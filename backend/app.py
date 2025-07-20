@@ -15,8 +15,7 @@ AUDD_API_TOKEN = "743e00d420dcbb966e64cdd026c34d63"
 
 # OpenAI API Key - Get yours from https://platform.openai.com/api-keys
 # Replace this with your actual OpenAI API key
-OPENAI_API_KEY = "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"
-
+OPENAI_API_KEY = "your_openai_api_key_here"
 # ============================================
 
 # Initialize Flask app and OpenAI client
