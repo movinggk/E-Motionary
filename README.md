@@ -64,10 +64,11 @@ integrated-app/
 
 The app requires the following API keys for full functionality:
 
-1. **Free LLM API** (for AI assistant feature):
-   - ✅ **No API key required** - uses Hugging Face's free inference API
-   - Optional: Get a free Hugging Face token for better rate limits
-   - See `API_KEYS_SETUP.md` for details
+1. **OpenAI API Key** (for AI assistant feature):
+   - Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Sign up or log in to your OpenAI account
+   - Click "Create new secret key"
+   - Copy the key and replace `your_openai_api_key_here` in `backend/app.py`
 
 2. **Audd.io API Token** (for music recognition):
    - The app includes a test token, but for production use:
@@ -107,10 +108,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Update API keys in `app.py` (optional):
+4. Update API keys in `app.py`:
 ```python
-AUDD_API_TOKEN = "your_audd_token_here"  # Optional: get your own from audd.io
-HUGGINGFACE_API_TOKEN = "your_hf_token_here"  # Optional: for better rate limits
+AUDD_API_TOKEN = "your_audd_token_here"
+OPENAI_API_KEY = "your_openai_key_here"  # Get from https://platform.openai.com/api-keys
 ```
 
 5. Start the Flask server:
@@ -235,7 +236,7 @@ CREATE TABLE photos (
 - Flask (Python web framework)
 - SQLite (Database)
 - Audd.io API (Music recognition)
-- Hugging Face Inference API (Free AI assistant)
+- OpenAI API (AI assistant)
 - Google Calendar API (Calendar integration)
 
 ### Frontend
@@ -337,4 +338,4 @@ If you're experiencing "Could not access microphone" errors, try these solutions
 
 ## License
 
-Please respect the terms of service for the APIs used (Audd.io, Huggingface).
+Please respect the terms of service for the APIs used (Audd.io, OpenAI).
