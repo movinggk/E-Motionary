@@ -271,6 +271,14 @@ export default function MusicView() {
         setManualTitle('');
         setManualArtist('');
         fetchSongs(); // Refresh the list
+        
+        if (result.needs_auth) {
+          alert('Song added to local database. Connect to Google Calendar in settings to sync automatically.');
+        } else if (result.event_id) {
+          alert('Song added successfully to Google Calendar!');
+        } else {
+          alert('Song added successfully!');
+        }
       } else {
         alert(result.message);
       }

@@ -36,7 +36,7 @@ source venv/bin/activate
 
 # Install Python dependencies
 echo "Installing Python packages..."
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 cd ..
 
@@ -56,6 +56,10 @@ echo ""
 echo "To start the application:"
 echo "1. Make sure you have API keys configured in backend/app.py"
 echo "2. Run: ./start.sh"
+echo ""
+echo "For Google Calendar integration (optional):"
+echo "1. Follow the setup guide in GOOGLE_CALENDAR_SETUP.md"
+echo "2. Place credentials.json in the backend/ directory"
 echo ""
 echo "Or start manually:"
 echo "1. Backend: cd backend && source venv/bin/activate && python app.py"

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Trash2, HelpCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Trash2, HelpCircle, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Try to detect the correct API base URL
 const getApiBase = () => {
@@ -17,6 +17,44 @@ export default function SettingsPanel({ onClose }) {
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [googleCalendarStatus, setGoogleCalendarStatus] = useState(null);
+  const [connecting, setConnecting] = useState(false);
+
+  // Check Google Calendar status on component mount
+  useEffect(() => {
+    checkGoogleCalendarStatus();
+  }, []);
+
+  const checkGoogleCalendarStatus = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/google-calendar/status`);
+      const result = await response.json();
+      setGoogleCalendarStatus(result);
+    } catch (error) {
+      console.error('Error checking Google Calendar status:', error);
+      setGoogleCalendarStatus({ authenticated: false, message: 'Error checking status' });
+    }
+  };
+
+  const connectGoogleCalendar = async () => {
+    setConnecting(true);
+    try {
+      const response = await fetch(`${API_BASE}/google-calendar/auth`);
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Successfully connected to Google Calendar!');
+        checkGoogleCalendarStatus();
+      } else {
+        alert(`Failed to connect: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error connecting to Google Calendar:', error);
+      alert('Error connecting to Google Calendar');
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   const askQuestion = async () => {
     if (!question.trim()) return;
@@ -84,6 +122,48 @@ export default function SettingsPanel({ onClose }) {
 
         {/* content */}
         <div className="space-y-4">
+          {/* Google Calendar Integration */}
+          <div className="rounded-lg border border-gray-200 p-4 bg-white">
+            <div className="mb-3 flex items-center gap-2">
+              <Calendar size={16} className="text-green-600" />
+              <h4 className="font-medium">Google Calendar Integration</h4>
+            </div>
+            
+            {googleCalendarStatus ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {googleCalendarStatus.authenticated ? (
+                    <CheckCircle size={16} className="text-green-600" />
+                  ) : (
+                    <AlertCircle size={16} className="text-yellow-600" />
+                  )}
+                  <span className="text-sm text-gray-700">
+                    {googleCalendarStatus.message}
+                  </span>
+                </div>
+                
+                {!googleCalendarStatus.authenticated && (
+                  <button
+                    onClick={connectGoogleCalendar}
+                    disabled={connecting}
+                    className="w-full rounded bg-green-500 px-4 py-2 text-sm font-medium text-white disabled:bg-gray-300"
+                  >
+                    {connecting ? 'Connecting...' : 'Connect Google Calendar'}
+                  </button>
+                )}
+                
+                <div className="text-xs text-gray-600">
+                  {googleCalendarStatus.authenticated 
+                    ? 'Your music and photos will be automatically saved to Google Calendar'
+                    : 'Connect to automatically save your music and photos to Google Calendar'
+                  }
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">Checking status...</div>
+            )}
+          </div>
+
           {/* Ask AI */}
           <div className="rounded-lg border border-gray-200 p-4 bg-white">
             <div className="mb-3 flex items-center gap-2">

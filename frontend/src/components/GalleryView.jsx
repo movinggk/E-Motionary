@@ -78,6 +78,14 @@ export default function GalleryView() {
       if (result.success) {
         fetchPhotos(); // Refresh the list
         console.log('Photo saved successfully');
+        
+        if (result.needs_auth) {
+          alert('Photo added to local database. Connect to Google Calendar in settings to sync automatically.');
+        } else if (result.event_id) {
+          alert('Photo added successfully to Google Calendar!');
+        } else {
+          alert('Photo added successfully!');
+        }
       } else {
         console.error('Server returned error:', result.message);
         alert(`Error: ${result.message}`);

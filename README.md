@@ -9,6 +9,14 @@ A unified application that combines music recognition and photo journaling on a 
 - Manual song entry with title and artist
 - View listening history with timestamps
 - AI-powered questions about your music history
+- **NEW**: Automatic sync to Google Calendar
+
+### 📸 Photo Journaling
+- Take photos with device camera
+- Add optional labels to photos
+- View photo gallery with timestamps
+- Export photos in various formats
+- **NEW**: Automatic sync to Google Calendar
 
 ### 📸 Photo Journaling
 - Take photos with device camera
@@ -21,6 +29,7 @@ A unified application that combines music recognition and photo journaling on a 
 - Visual indicators for music (🎵) and photos (📷)
 - Click on any day to see detailed entries
 - Navigate between months seamlessly
+- **NEW**: Google Calendar integration for automatic syncing
 
 ### 📊 Data Export
 - Export all data as ZIP file
@@ -91,6 +100,15 @@ python app.py
 ```
 
 The backend will run on `http://localhost:5001`
+
+#### Google Calendar Integration (Optional)
+
+To enable Google Calendar integration:
+
+1. Follow the detailed setup guide in `GOOGLE_CALENDAR_SETUP.md`
+2. Download your OAuth credentials and place them in the `backend/` directory
+3. Install the new dependencies: `pip install -r requirements.txt`
+4. Connect to Google Calendar through the app settings
 
 #### Frontend Setup
 
@@ -164,6 +182,10 @@ The frontend will run on `http://localhost:3000`
 - `POST /api/ask` - Ask AI about data
 - `POST /api/clear-history` - Clear all data
 
+### Google Calendar
+- `GET /api/google-calendar/status` - Check authentication status
+- `GET /api/google-calendar/auth` - Authenticate with Google Calendar
+
 ## Database Schema
 
 ### Songs Table
@@ -195,6 +217,7 @@ CREATE TABLE photos (
 - SQLite (Database)
 - Audd.io API (Music recognition)
 - OpenAI API (AI assistant)
+- Google Calendar API (Calendar integration)
 
 ### Frontend
 - React 19 (UI framework)

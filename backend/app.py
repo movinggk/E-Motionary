@@ -7,6 +7,7 @@ import requests
 from openai import OpenAI
 import os
 import base64
+from google_calendar import calendar_manager
 
 # === Configuration: Insert your keys here ===
 FLASK_SECRET = "your_flask_secret_here"
@@ -67,6 +68,25 @@ def health_check():
     """Health check endpoint"""
     return jsonify({'status': 'ok', 'message': 'Backend is running'})
 
+@app.route('/api/google-calendar/auth', methods=['GET'])
+def google_calendar_auth():
+    """Authenticate with Google Calendar"""
+    try:
+        calendar_manager.authenticate()
+        return jsonify({'success': True, 'message': 'Successfully authenticated with Google Calendar'})
+    except FileNotFoundError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Authentication failed: {str(e)}'}), 500
+
+@app.route('/api/google-calendar/status', methods=['GET'])
+def google_calendar_status():
+    """Check Google Calendar authentication status"""
+    return jsonify({
+        'authenticated': calendar_manager.is_authenticated(),
+        'message': 'Authenticated with Google Calendar' if calendar_manager.is_authenticated() else 'Not authenticated'
+    })
+
 @app.route('/api/songs', methods=['GET'])
 def get_songs():
     conn = sqlite3.connect(DB_PATH)
@@ -108,6 +128,7 @@ def get_photos():
 @app.route('/api/calendar-data', methods=['GET'])
 def get_calendar_data():
     """Get both songs and photos for calendar display"""
+    # Get data from local database
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
@@ -127,6 +148,45 @@ def get_calendar_data():
         'photos': [{'data_url': row[0], 'label': row[1], 'timestamp': row[2]} for row in photos]
     }
     
+    # If Google Calendar is authenticated, also get events from there
+    if calendar_manager.is_authenticated():
+        try:
+            google_events = calendar_manager.get_events()
+            
+            # Parse Google Calendar events
+            for event in google_events:
+                start_time = event['start'].get('dateTime', event['start'].get('date'))
+                summary = event.get('summary', '')
+                description = event.get('description', '')
+                
+                if '🎵' in summary:  # Song event
+                    # Extract title from summary (remove 🎵 emoji)
+                    title = summary.replace('🎵 ', '')
+                    artist = ''
+                    if 'Artist:' in description:
+                        artist = description.split('Artist:')[1].split('\n')[0].strip()
+                    
+                    calendar_data['songs'].append({
+                        'title': title,
+                        'artist': artist,
+                        'timestamp': start_time,
+                        'google_event_id': event['id']
+                    })
+                
+                elif '📷' in summary:  # Photo event
+                    label = ''
+                    if 'Label:' in description:
+                        label = description.split('Label:')[1].split('\n')[0].strip()
+                    
+                    calendar_data['photos'].append({
+                        'data_url': '',  # Google Calendar doesn't store image data
+                        'label': label,
+                        'timestamp': start_time,
+                        'google_event_id': event['id']
+                    })
+        except Exception as e:
+            print(f"Error fetching Google Calendar events: {e}")
+    
     return jsonify(calendar_data)
 
 @app.route('/api/add-song', methods=['POST'])
@@ -136,16 +196,39 @@ def add_song():
     artist = data.get('artist', '')
     
     if title:
+        now = datetime.utcnow().isoformat()
+        
+        # Save to local database for backup
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        now = datetime.utcnow().isoformat()
         cursor.execute(
             "INSERT INTO songs (title, artist, listened_at, created_at) VALUES (?, ?, ?, ?)",
             (title, artist, now, now)
         )
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': 'Song added successfully'})
+        
+        # Save to Google Calendar if authenticated
+        if calendar_manager.is_authenticated():
+            try:
+                event_id = calendar_manager.add_song_event(title, artist, now)
+                return jsonify({
+                    'success': True, 
+                    'message': 'Song added successfully to Google Calendar',
+                    'event_id': event_id
+                })
+            except Exception as e:
+                return jsonify({
+                    'success': True, 
+                    'message': 'Song added to local database but failed to save to Google Calendar',
+                    'error': str(e)
+                })
+        else:
+            return jsonify({
+                'success': True, 
+                'message': 'Song added to local database. Connect to Google Calendar to sync.',
+                'needs_auth': True
+            })
     
     return jsonify({'success': False, 'message': 'Title is required'}), 400
 
@@ -167,10 +250,11 @@ def add_photo():
         if not data_url.startswith('data:image/'):
             return jsonify({'success': False, 'message': 'Invalid data URL format'}), 400
         
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         
+        # Save to local database for backup
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO photos (data_url, label, taken_at, created_at) VALUES (?, ?, ?, ?)",
             (data_url, label, now, now)
@@ -179,7 +263,28 @@ def add_photo():
         conn.close()
         
         print("Photo saved successfully to database")
-        return jsonify({'success': True, 'message': 'Photo added successfully'})
+        
+        # Save to Google Calendar if authenticated
+        if calendar_manager.is_authenticated():
+            try:
+                event_id = calendar_manager.add_photo_event(label, now, data_url)
+                return jsonify({
+                    'success': True, 
+                    'message': 'Photo added successfully to Google Calendar',
+                    'event_id': event_id
+                })
+            except Exception as e:
+                return jsonify({
+                    'success': True, 
+                    'message': 'Photo added to local database but failed to save to Google Calendar',
+                    'error': str(e)
+                })
+        else:
+            return jsonify({
+                'success': True, 
+                'message': 'Photo added to local database. Connect to Google Calendar to sync.',
+                'needs_auth': True
+            })
         
     except Exception as e:
         print(f"Error saving photo: {str(e)}")
