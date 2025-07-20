@@ -15,7 +15,7 @@ AUDD_API_TOKEN = "743e00d420dcbb966e64cdd026c34d63"
 # Hugging Face API Token (Optional - for better rate limits)
 # Get yours from https://huggingface.co/settings/tokens
 # Free tier available without token, but with rate limits
-HUGGINGFACE_API_TOKEN = "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"  # Set to your token if you have one
+HUGGINGFACE_API_TOKEN = None  # Set to your token if you have one
 
 # ============================================
 
